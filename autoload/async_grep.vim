@@ -8,6 +8,7 @@ let s:job_id = 0
 " g:async_grep_llist
 let s:setqflist = function("setqflist")
 let s:getqflist = function("getqflist")
+let s:copen = "copen"
 
 " What the current query is
 let s:query = ""
@@ -79,12 +80,31 @@ function! async_grep#internal_grep(use_local, flags, ...)
     call jobwait([l:old_job_id], 200)
   endif
 
-  if a:use_local == 1 || a:use_local == -1 && g:async_grep_llist
-    let s:setqflist = function("setloclist")
-    let s:getqflist = function("getloclist")
+  function! s:setloclist(list, ...)
+    if a:0 == 2
+      call setloclist(0, a:list, a:1, a:2)
+    elseif a:0 == 1
+      call setloclist(0, a:list, a:1)
+    else
+      call setloclist(0, a:list)
+    endif
+  endfunction
+  function! s:getloclist(...)
+    if a:0 == 1
+      call getloclist(0, a:1)
+    else
+      call getloclist(0)
+    endif
+  endfunction
+
+  if a:use_local == 1 || ( a:use_local == -1 && g:async_grep_llist )
+    let s:setqflist = function("s:setloclist")
+    let s:getqflist = function("s:getloclist")
+    let s:copen = "lopen"
   else
     let s:setqflist = function("setqflist")
     let s:getqflist = function("getqflist")
+    let s:copen = "copen"
   endif
 
   call s:setqflist([], 'r')
@@ -112,10 +132,6 @@ function! async_grep#internal_grep(use_local, flags, ...)
         throw "async_grep: Invalid direction " . g:async_grep_open_dir
       endif
     endif
-    if g:async_grep_llist
-      execute g:async_grep_open_dir . ' lopen'
-    else
-      execute g:async_grep_open_dir . ' copen'
-    endif
+    execute g:async_grep_open_dir . ' ' s:copen
   endif
 endfunction
